@@ -1,6 +1,8 @@
 package com.apps.tedrecomendation;
 
-public class CharlaRecomendada {
+import java.io.Serializable;
+
+public class CharlaRecomendada implements Serializable {
 
     private final double id;
     private final double puntuacion;

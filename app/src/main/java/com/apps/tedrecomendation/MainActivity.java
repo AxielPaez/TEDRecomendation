@@ -23,6 +23,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -42,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         textView = (TextView) this.findViewById(R.id.textView);
         button = (Button) findViewById(R.id.button);
         user = (EditText) findViewById(R.id.editTextTextPersonName);
@@ -56,16 +58,18 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void openShowRecomendation(CharlaRecomendada[] charlas){
+    public void openShowRecomendation(ArrayList<CharlaRecomendada> charlas){
         Intent intent = new Intent(this, ShowRecomendation.class);
-        //intent.putExtra("recomendacion", charlas);
+
+        intent.putExtra("recomendacion", charlas);
         startActivity(intent);
     }
 
     private class ConnectMySql extends AsyncTask<String, Void, String> {
 
         String res = "";
-        CharlaRecomendada[] charlas;
+        ArrayList<CharlaRecomendada> charlas;
+        //CharlaRecomendada[] charlas;
 
         @Override
         protected void onPreExecute() {
@@ -121,12 +125,17 @@ public class MainActivity extends AppCompatActivity {
                 res = result2;
 
                 String [] tmp = result2.split(",");
-                charlas = new CharlaRecomendada[10];
+                charlas = new ArrayList<CharlaRecomendada>();
 
-                for(int i=0; i<charlas.length; i=i+2){
-                    charlas[i/2] = new CharlaRecomendada(Double.parseDouble(tmp[i]), Double.parseDouble(tmp[i+1]));
-                    System.out.println(charlas[1/2].toString());
+                for(int i=0; i<tmp.length; i=i+2){
+                    charlas.add(new CharlaRecomendada(Double.parseDouble(tmp[i]), Double.parseDouble(tmp[i+1])));
+                    System.out.println(charlas.get(1/2).toString());
                 }
+
+                System.out.println("###########################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################");
+                System.out.println("Recomend:");
+                System.out.println(charlas.get(0).toString());
+
 
                 is.close();
                 in.close();
@@ -144,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String result) {
             textView.setText(result);
+
             openShowRecomendation(charlas);
         }
     }
