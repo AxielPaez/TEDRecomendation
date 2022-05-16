@@ -1,18 +1,20 @@
 package com.apps.tedrecomendation;
 
+import androidx.annotation.NonNull;
+
 import java.io.Serializable;
 
 public class CharlaRecomendada implements Serializable {
 
-    private final double id;
+    private final int id;
     private final double puntuacion;
 
-    public CharlaRecomendada(double id, double puntuacion){
+    public CharlaRecomendada(int id, double puntuacion){
         this. id = id;
         this.puntuacion = puntuacion;
     }
 
-    public double getId(){
+    public int getId(){
         return id;
     }
 
@@ -20,8 +22,9 @@ public class CharlaRecomendada implements Serializable {
         return puntuacion;
     }
 
+    @NonNull
     public String toString(){
-        return  "ID: " + String.valueOf(id) + " Puntuacion: " + String.valueOf(puntuacion);
+        return  "ID: " + id + " Puntuacion: " + puntuacion;
     }
 
 }
