@@ -51,7 +51,7 @@ public class ListAdapter extends BaseAdapter {
         TextView nombre = view.findViewById(R.id.nombrecharla);
         TextView puntuacion = view.findViewById(R.id.puntuacionrecomendacion);
 
-        nombre.setText(String.valueOf(c.getId()));
+        nombre.setText(String.valueOf(c.getTitulo()));
         puntuacion.setText(String.valueOf(c.getPuntuacion()));
 
 

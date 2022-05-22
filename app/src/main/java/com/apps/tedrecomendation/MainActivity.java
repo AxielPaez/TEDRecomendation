@@ -54,15 +54,13 @@ import java.util.Enumeration;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String db_url = "jdbc:mysql://192.168.1.41:3306/TED?characterEncoding=utf8";
-    private static final String db_user = "dba";
-    private static final String db_pass = "dba";
-
-    private static final String sv_url = "192.168.1.41";
+    private static final String sv_url = "192.168.1.44";
     private static final int sv_port = 10000;
 
+    private static final int ID_LOGIN = 1;
+
     Button button;
-    TextView textView;
+    TextView textView, p12certificate, pemcertificate;
     EditText user, password;
 
     Intent intent;
@@ -80,6 +78,9 @@ public class MainActivity extends AppCompatActivity {
         button = (Button) findViewById(R.id.bt_logIn);
         user = (EditText) findViewById(R.id.editTextTextPersonName);
         password = (EditText) findViewById(R.id.editTextTextPassword);
+
+        p12certificate = (TextView) findViewById(R.id.p12certificate);
+        pemcertificate = (TextView) findViewById(R.id.pemcertificate);
 
         if (isStoragePermissionGranted()) {
             Toast.makeText(MainActivity.this,  "Permission is granted ", Toast.LENGTH_SHORT).show();
@@ -324,6 +325,8 @@ public class MainActivity extends AppCompatActivity {
 
                 File dir1 = context.getApplicationContext().getExternalFilesDir("FILES");
                 File fs = new File(dir1, "cert.p12");
+
+                p12certificate.setText(fs.getPath());
 
                 if(!fs.exists()){
                     System.out.println("cert.p12 no existe");
@@ -598,33 +601,22 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected String doInBackground(String... params) {
+
+            String request;
+
             try {
 
-                String sql = "select id from usuario where nombre = ? and correo = ?";
-                String result;
-
-                Class.forName("com.mysql.jdbc.Driver");
-                Connection con = DriverManager.getConnection(db_url, db_user, db_pass);
-
-                PreparedStatement pst=con.prepareStatement(sql);
-                pst.setString(1,user.getText().toString());
-                pst.setString(2,password.getText().toString());
-
-                ResultSet rs = pst.executeQuery();
-                ResultSetMetaData rsmd = rs.getMetaData();
-
-                if(!rs.next()){
-                    result = "Usuario o contraseña incorrectos";
-                }else{
-                    result = rs.getString(1) + "\n";
-                }
+                String nombre = user.getText().toString();
+                String contrasena = password.getText().toString();
 
                 Socket socket = new Socket(sv_url,sv_port);
 
                 OutputStream os = socket.getOutputStream();
                 PrintWriter pw = new PrintWriter(os);
 
-                pw.write(result);
+                request = ID_LOGIN +","+nombre+","+contrasena;
+
+                pw.write(request);
                 pw.flush();
                 socket.shutdownOutput();
 
@@ -641,12 +633,17 @@ public class MainActivity extends AppCompatActivity {
 
                 res = result2;
 
-                String [] tmp = result2.split(",");
+                System.out.println("RESULTADO 2: " +result2);
+                String [] tmp = result2.split(";");
+                String [] infoCharla;
                 charlas = new ArrayList<>();
 
-                for(int i=0; i<tmp.length; i=i+2){
-                    charlas.add(new CharlaRecomendada(Integer.parseInt(tmp[i]), Double.parseDouble(tmp[i+1])));
-                    //System.out.println(charlas.get(1/2).toString());
+                for(int i=0; i<tmp.length; i=i+3){
+                    System.out.println("i= "+i);
+                    System.out.println(tmp[i]);
+                    System.out.println(tmp[i+1]);
+                    System.out.println(tmp[i+2]);
+                    charlas.add(new CharlaRecomendada(Integer.parseInt(tmp[i]),tmp[i+1], Double.parseDouble(tmp[i+2])));
                 }
 
 
