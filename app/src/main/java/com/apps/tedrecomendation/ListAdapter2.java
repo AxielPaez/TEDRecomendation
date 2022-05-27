@@ -1,12 +1,10 @@
 package com.apps.tedrecomendation;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.content.Context;
 import android.widget.BaseAdapter;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,15 +12,14 @@ import androidx.annotation.Nullable;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.List;
 
-public class ListAdapter extends BaseAdapter {
+public class ListAdapter2 extends BaseAdapter {
 
     Context context;
     ArrayList<CharlaRecomendada> lst;
     private static final DecimalFormat df = new DecimalFormat("0.00");
 
-    public ListAdapter(Context context, ArrayList<CharlaRecomendada> lst){
+    public ListAdapter2(Context context, ArrayList<CharlaRecomendada> lst){
         this.context = context;
         this.lst = lst;
     }
@@ -51,11 +48,11 @@ public class ListAdapter extends BaseAdapter {
 
 
         TextView nombre = view.findViewById(R.id.nombrecharla);
-        TextView puntuacion = view.findViewById(R.id.puntuacionrecomendacion);
+        TextView id = view.findViewById(R.id.puntuacionrecomendacion);
 
 
         nombre.setText(String.valueOf(c.getTitulo()));
-        puntuacion.setText(String.valueOf(df.format(c.getPuntuacion())));
+        id.setText("Id: " + String.valueOf(c.getId()));
 
 
         return view;

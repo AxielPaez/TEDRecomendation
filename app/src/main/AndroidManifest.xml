@@ -17,13 +17,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TEDRecomendation">
         <activity
+            android:name=".ShowHistory"
+            android:exported="false" />
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false" />
+        <activity
             android:name=".Speach"
-            android:parentActivityName=".ShowRecomendation" />
+            android:parentActivityName=".ShowRecomendation" /> <!-- The meta-data tag is required if you support API level 15 and lower -->
+        <meta-data
+            android:name="android.support.PARENT_ACTIVITY"
+            android:value=".ShowRecomendation" />
 
-            <!-- The meta-data tag is required if you support API level 15 and lower -->
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".ShowRecomendation" />
         <activity
             android:name=".ShowRecomendation"
             android:parentActivityName=".MainActivity">

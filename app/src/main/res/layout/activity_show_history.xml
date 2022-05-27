@@ -7,7 +7,7 @@
     android:layout_height="match_parent">
 
     <ListView
-        android:id="@+id/listaReco"
+        android:id="@+id/listaHist"
         android:layout_width="match_parent"
         android:layout_height="600dp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -22,11 +22,11 @@
         android:id="@+id/button4"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Show History"
-        android:onClick="showHistory"
+        android:text="Show Recomendations"
+        android:onClick="showRecomendations"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/listaReco" />
+        app:layout_constraintTop_toBottomOf="@+id/listaHist" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

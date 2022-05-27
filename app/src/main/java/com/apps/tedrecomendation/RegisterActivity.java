@@ -8,41 +8,33 @@ import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SyncStatusObserver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.FileUtils;
 import android.provider.OpenableColumns;
-import android.view.Gravity;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.net.Socket;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -50,24 +42,25 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.util.ArrayList;
 import java.util.Enumeration;
 
-public class MainActivity extends AppCompatActivity {
+public class RegisterActivity extends AppCompatActivity {
 
     private static final String sv_url = "192.168.1.44";
     private static final int sv_port = 10000;
 
-    private static final int ID_LOGIN = 0;
-
-    TextView textView, p12certificate, pemcertificate;
+    TextView p12certificate2, pemcertificate2;
     EditText userET, p12passwordET;
+
+    Context context;
+    Intent intent;
+    InputStream is;
+
+    byte auxdatotosign[];
+
+    private static final int ID_LOGIN = 1;
+    private static final int ID_GETSPEACHDATA = 2;
+    private static final int ID_ALMACENAPEM = 3;
 
     private static final int UNEXPECTED = -1;
     private static final int NOERROR = 0;
@@ -76,27 +69,20 @@ public class MainActivity extends AppCompatActivity {
     private static final int ERRORSIGNATURE = 3;
     private static final int ERRORVERIFY = 4;
 
-    Intent intent;
-    Context context;
-    byte auxdatotosign[];
-    InputStream is;
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_register);
 
-        userET = (EditText) findViewById(R.id.editTextTextPersonName);
-        p12passwordET = (EditText) findViewById(R.id.editTextTextPassword);
+        userET = (EditText) findViewById(R.id.editTextTextPersonName2);
+        p12passwordET = (EditText) findViewById(R.id.editTextTextPersonName3);
 
-        p12certificate = (TextView) findViewById(R.id.p12certificate);
-        pemcertificate = (TextView) findViewById(R.id.pemcertificate);
+        p12certificate2 = (TextView) findViewById(R.id.p12certificate2);
+        pemcertificate2 = (TextView) findViewById(R.id.pemcertificate2);
 
         if (isStoragePermissionGranted()) {
-            Toast.makeText(MainActivity.this,  "Permission is granted ", Toast.LENGTH_SHORT).show();
+            Toast.makeText(RegisterActivity.this,  "Permission is granted ", Toast.LENGTH_SHORT).show();
         }
-
     }
 
     public boolean isStoragePermissionGranted(){
@@ -151,20 +137,9 @@ public class MainActivity extends AppCompatActivity {
 
         if(grantResults[0] == PackageManager.PERMISSION_GRANTED){
             System.out.println("Permission: "+permissions[0]+ "was "+grantResults[0]);
-            Toast.makeText(MainActivity.this,  "Permission is granted ", Toast.LENGTH_SHORT).show();
+            Toast.makeText(RegisterActivity.this,  "Permission is granted ", Toast.LENGTH_SHORT).show();
         }
 
-    }
-
-    public void openShowRecomendation(String id_usuario){
-        Intent intent = new Intent(this, ShowRecomendation.class);
-        intent.putExtra("id_usuario", id_usuario);
-        startActivity(intent);
-    }
-
-    public void login(View v){
-        Login login = new Login();
-        login.execute();
     }
 
     public void getp12(View v){
@@ -209,6 +184,8 @@ public class MainActivity extends AppCompatActivity {
 
                         String myfichero2 = getFileName(fileUri);
 
+                        p12certificate2.setText(PathHolder+"/"+myfichero2);
+
                         ContentResolver cr = context.getContentResolver();
                         System.out.println(" cr :" + cr);
 
@@ -243,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
 
                         System.out.println("Escrito fichero cert.p12 en directorio app" );
                     }catch (Exception e) {
-                        Toast.makeText(MainActivity.this,  "error is: " + e.toString(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(RegisterActivity.this,  "error is: " + e.toString(), Toast.LENGTH_SHORT).show();
                     }
                 }
                 break;
@@ -257,6 +234,8 @@ public class MainActivity extends AppCompatActivity {
 
                         Uri fileUri = data.getData();
                         String myfichero2 = getFileName(fileUri);
+
+                        pemcertificate2.setText(PathHolder+"/"+myfichero2);
 
                         ContentResolver cr = context.getContentResolver();
                         System.out.println(" cr :" + cr);
@@ -291,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
                         System.out.println("Escrito fichero cert.pem en directorio app");
 
                     }catch (Exception e) {
-                        Toast.makeText(MainActivity.this,  "error is: " + e.toString(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(RegisterActivity.this,  "error is: " + e.toString(), Toast.LENGTH_SHORT).show();
                     }
                 }
                 break;
@@ -300,28 +279,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    public void firma(View v) {
+        // creo y verifico una firma leyendo un fichero *p12
+        Register register= new Register();
+        register.execute();
+    }
 
     /**
-     * Me conecto a la Base de Datos MySQL
-     * Compruebo si el usuario y la contraseña son válidos
-     * Si usuario y contraseña son validos, obtengo las recomendaciones correspondientes
+     * Creo y Verifico una firma digital leyendo un fichero .p12
      */
-    private class Login extends AsyncTask<String, Void, Integer> {
-
-        int res;
-        String id_usuario;
-        ArrayList<CharlaRecomendada> charlas;
+    class Register extends AsyncTask<Void, Void, Integer> {
 
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            //Toast.makeText(MainActivity.this, "Please wait...", Toast.LENGTH_SHORT).show();
-
-        }
-
-        @Override
-        protected Integer doInBackground(String... params) {
+        protected Integer doInBackground(Void... voids) {
 
             KeyStore ks;
             char[] clave;
@@ -341,7 +311,8 @@ public class MainActivity extends AppCompatActivity {
             File pemDir;
             File signatureDir;
 
-            try {
+
+            try{
 
                 userName = userET.getText().toString();
                 p12password = p12passwordET.getText().toString();
@@ -395,91 +366,85 @@ public class MainActivity extends AppCompatActivity {
                 /*
                 Verifico que la clave publica es la correspondiente a la clave privada
                  */
-                Socket socket = new Socket(sv_url,sv_port);
-                OutputStream os = socket.getOutputStream();
-                PrintWriter pw = new PrintWriter(os);
-
-                String request = ID_LOGIN +";"+userName;
-
-                pw.write(request);
-                pw.flush();
-                socket.shutdownOutput();
-
-                InputStream is = socket.getInputStream();
-                BufferedReader in = new BufferedReader(new InputStreamReader(is, "UTF8"));
-
-                String aux;
-                String result2 ="";
-
-                while ((aux = in.readLine()) != null){
-                    result2 += aux +"\n";
-                    System.out.println("aux: "+aux);
-                    //System.out.println("Respuesta del servidor: " + aux);
-                }
-
-                String[] data = result2.split(";");
-                id_usuario = data[0];
-                String pem = data[1];
-
-                System.out.println("Main Activity ID_USUARIO: "+id_usuario);
-                System.out.println("Main Activity PEM: "+pem);
-
-
-
                 CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
-                try{
-                    InputStream caInput = new BufferedInputStream(new ByteArrayInputStream(pem.getBytes(StandardCharsets.UTF_8)));
-                    Certificate cert = cf.generateCertificate(caInput);
-                    System.out.println(cert.toString());
+                pemDir = context.getApplicationContext().getExternalFilesDir("FILES");
+                pemFile =new File(pemDir, pemFileName);
 
-                    PublicKey pk= cert.getPublicKey();
+                if (!pemFile.exists()) return PEMNOEXIST;
 
-                    FileInputStream fis = new FileInputStream(signatureFile);
-                    ObjectInputStream ois = new ObjectInputStream(fis);
-                    Object o = ois.readObject();
+                InputStream caInput = new BufferedInputStream(new FileInputStream(pemFile));
+                Certificate cert = cf.generateCertificate(caInput);
+                System.out.println(cert.toString());
 
-                    String data2 = (String) o;
+                PublicKey pk= cert.getPublicKey();
 
-                    o = ois.readObject();
-                    byte[] signature = (byte[]) o;
+                FileInputStream fis = new FileInputStream(signatureFile);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                Object o = ois.readObject();
 
-                    ois.close();
-                    fis.close();
+                String data2 = (String) o;
 
-                    Signature s = Signature.getInstance("SHA512withRSA");
-                    s.initVerify(pk);
-                    s.update(data2.getBytes());
+                o = ois.readObject();
+                byte[] signature = (byte[]) o;
 
-                    if(s.verify(signature)) return 1;
-                    else return 0;
+                ois.close();
+                fis.close();
 
-                } catch (IOException e) {
+                Signature s = Signature.getInstance("SHA512withRSA");
+                s.initVerify(pk);
+                s.update(data2.getBytes());
+
+                //Si puedo verificar la firma, almaceno el fichero PEM en la BBDD junto con el nombre de usuario
+                if(s.verify(signature)) {
+
+                    Socket socket = new Socket(sv_url, sv_port);
+                    OutputStream os = socket.getOutputStream();
+                    PrintWriter pw = new PrintWriter(os);
+
+                    StringBuilder textBuilder = new StringBuilder();
+                    try (Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(pemFile), Charset.forName(StandardCharsets.UTF_8.name())))) {
+                        int c = 0;
+                        while ((c = reader.read()) != -1) {
+                            textBuilder.append((char) c);
+                        }
+                    }
+
+                    System.out.println("TEXT BUILDER: "+textBuilder.toString());
+                    String request = ID_ALMACENAPEM + ";" + userName + ";" + textBuilder.toString();
+
+                    pw.write(request);
+                    pw.flush();
+                    socket.shutdownOutput();
+
+                    socket.close();
+
+                    return NOERROR;
+                }else{
+                    return ERRORVERIFY;
                 }
 
-            } catch (Exception e) {
-                e.printStackTrace();
-                res = UNEXPECTED;
-            }
+            }catch (Exception e){ e.printStackTrace(); }
 
-            return res;
+            return UNEXPECTED;
         }
 
         @Override
-        protected void onPostExecute(Integer result) {
-            //textView.setText(result);
-            if(result == 1 ) openShowRecomendation(id_usuario);
-            else if(result == 0 ) Toast.makeText(MainActivity.this, "Datos incorrectos", Toast.LENGTH_SHORT).show();
-            else if(result == -1) Toast.makeText(MainActivity.this, "Ha saltado excepcion", Toast.LENGTH_SHORT).show();
+        protected  void onPostExecute(Integer s) {
+            if(s == P12NOEXIST) {
+                Toast.makeText(RegisterActivity.this, "P12 no existe !!!!!", Toast.LENGTH_SHORT).show();
+            } else if (s == PEMNOEXIST) {
+                Toast.makeText(RegisterActivity.this, "Pem no existe !!!!!", Toast.LENGTH_SHORT).show();
+            } else if (s == ERRORSIGNATURE) {
+                Toast.makeText(RegisterActivity.this, "Error creando signature", Toast.LENGTH_SHORT).show();
+            } else if (s == ERRORVERIFY) {
+                Toast.makeText(RegisterActivity.this, "Error verificando signature", Toast.LENGTH_SHORT).show();
+            } else if (s == UNEXPECTED) {
+                Toast.makeText(RegisterActivity.this, "Error inesperado", Toast.LENGTH_SHORT).show();
+            }else{
+                Toast.makeText(RegisterActivity.this, "Usuario registrado", Toast.LENGTH_SHORT).show();
+            }
+
         }
     }
-
-    public void register(View v){
-
-        Intent intent = new Intent(MainActivity.this, RegisterActivity.class);
-        startActivity(intent);
-
-    }
-
-
 }
