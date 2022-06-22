@@ -1,85 +1,75 @@
 package com.apps.tedrecomendation;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SyncStatusObserver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.FileUtils;
 import android.provider.OpenableColumns;
-import android.view.Gravity;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.Signature;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String sv_url = "192.168.1.44";
-    private static final int sv_port = 10000;
+    private String sv_url;
+    private static final int sv_users = 5220;
 
     private static final int ID_LOGIN = 0;
 
-    TextView textView, p12certificate, pemcertificate;
-    EditText userET, p12passwordET;
-
     private static final int UNEXPECTED = -1;
-    private static final int NOERROR = 0;
+    private static final int CORRECT = 0;
     private static final int P12NOEXIST = 1;
-    private static final int PEMNOEXIST = 2;
-    private static final int ERRORSIGNATURE = 3;
-    private static final int ERRORVERIFY = 4;
+    private static final int ERRORSIGNATURE = 2;
+    private static final int USRNOREGIS = 3;
+    private static final int ERRORSIGNATURE2 = 4;
+
+    EditText ipET, userET, p12passwordET;
 
     Intent intent;
     Context context;
-    byte auxdatotosign[];
+    byte[] auxdatotosign;
     InputStream is;
+
+    String Mycipher;
+    String IPpeer;
+    InetAddress IPpeer_innet;
 
 
     @Override
@@ -89,9 +79,8 @@ public class MainActivity extends AppCompatActivity {
 
         userET = (EditText) findViewById(R.id.editTextTextPersonName);
         p12passwordET = (EditText) findViewById(R.id.editTextTextPassword);
+        ipET = (EditText) findViewById(R.id.ipET);
 
-        p12certificate = (TextView) findViewById(R.id.p12certificate);
-        pemcertificate = (TextView) findViewById(R.id.pemcertificate);
 
         if (isStoragePermissionGranted()) {
             Toast.makeText(MainActivity.this,  "Permission is granted ", Toast.LENGTH_SHORT).show();
@@ -131,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
                     result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                 }
             }finally {
-                cursor.close();
+                if(cursor != null) cursor.close();
             }
         }
         if (result == null) {
@@ -145,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults){
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults){
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
@@ -346,6 +335,8 @@ public class MainActivity extends AppCompatActivity {
                 userName = userET.getText().toString();
                 p12password = p12passwordET.getText().toString();
 
+                sv_url = ipET.getText().toString();
+
                 ks = KeyStore.getInstance("PKCS12");
 
                 p12Dir = context.getApplicationContext().getExternalFilesDir("FILES");
@@ -395,72 +386,186 @@ public class MainActivity extends AppCompatActivity {
                 /*
                 Verifico que la clave publica es la correspondiente a la clave privada
                  */
-                Socket socket = new Socket(sv_url,sv_port);
-                OutputStream os = socket.getOutputStream();
-                PrintWriter pw = new PrintWriter(os);
+                String[] result = new String[10];
 
-                String request = ID_LOGIN +";"+userName;
+                SSLContext ctx;
+                KeyManagerFactory kmf, kmf2;
+                KeyStore ks1, ks2;
 
-                pw.write(request);
-                pw.flush();
-                socket.shutdownOutput();
+                kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                ks1 = KeyStore.getInstance("BKS");
+                ctx = SSLContext.getInstance("TLS");
 
-                InputStream is = socket.getInputStream();
-                BufferedReader in = new BufferedReader(new InputStreamReader(is, "UTF8"));
+                KeyStore keyStore = null;
+                // keyStore = KeyStore.getInstance("JKS");
+                keyStore = KeyStore.getInstance("BKS");
 
-                String aux;
-                String result2 ="";
+                InputStream certificateStream = getResources().openRawResource(R.raw.cacertificado);
 
-                while ((aux = in.readLine()) != null){
-                    result2 += aux +"\n";
-                    System.out.println("aux: "+aux);
-                    //System.out.println("Respuesta del servidor: " + aux);
+                CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
+                java.security.cert.Certificate[]  chain = {};
+                chain = certificateFactory.generateCertificates(certificateStream).toArray(chain);
+
+                certificateStream.close();
+
+
+
+                //Chain es un array de certificados que en el valor 0 tiene nuestro certificado
+
+                System.out.println(  ((X509Certificate)chain[0]).toString());
+                System.out.println("\n\n");
+                System.out.println("LEIDO CERTIFICADO:");
+                System.out.println("\tPROPIETARIO: " + ((X509Certificate)chain[0]).getSubjectDN( ));
+                System.out.println("\tEMISOR: " +((X509Certificate)chain[0]).getIssuerDN( ));
+                System.out.println("\tVALIDDEZ: " +((X509Certificate)chain[0]).getNotBefore() + " to " + ((X509Certificate)chain[0]).getNotAfter( ));
+                System.out.println("\tNUMERO DE SERIE: " + ((X509Certificate)chain[0]).getSerialNumber( ));
+                System.out.println("\tALGORITMOS: " +((X509Certificate)chain[0]).getSigAlgName( ));
+                certificateStream.close();
+
+                String Alias="oooooo";
+
+                //la clave privada tiene que corresponden con el certificado que enta em el array 0 de chaihn
+
+
+                keyStore.load(null,null);
+
+                keyStore.setEntry( Alias,   new KeyStore.TrustedCertificateEntry(chain[0]), null);
+
+
+
+                // TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+
+
+                tmf.init(keyStore);
+
+
+                ctx.init(null, tmf.getTrustManagers(), null);
+
+
+                Socket socket_cliente = new Socket(sv_url, sv_users);
+
+                System.out.println("CREADO SOCKET tcp");
+
+                IPpeer_innet = socket_cliente.getInetAddress();
+
+
+                System.out.println("CL:Host: " + IPpeer_innet);
+
+
+                OutputStream Flujo_salida = socket_cliente.getOutputStream();
+                InputStream Flujo_entrada = socket_cliente.getInputStream();
+
+                DataOutputStream Flujo_s = new DataOutputStream(Flujo_salida);
+                DataInputStream Flujo_e = new DataInputStream(Flujo_entrada);
+
+
+                String mensaje_inicial;
+                boolean ssl;
+                boolean ssl_activated=true;
+
+                if (ssl_activated) {
+                    mensaje_inicial = "ssl";
+
+                } else {
+
+                    mensaje_inicial = "nada";
+
+
                 }
-
-                String[] data = result2.split(";");
-                id_usuario = data[0];
-                String pem = data[1];
-
-                System.out.println("Main Activity ID_USUARIO: "+id_usuario);
-                System.out.println("Main Activity PEM: "+pem);
+                Flujo_s.writeUTF(mensaje_inicial);
+                System.out.println("CL: ENVIADO MENSAJE INICIAL");
 
 
+                SSLSocketFactory sslSf = ctx.getSocketFactory();
+                //Actualizamos el socketm para que ahora sea ssl
+                SSLSocket sslsocket = (SSLSocket) sslSf.createSocket(socket_cliente, null, socket_cliente.getPort(), false);
+                // el modo de usar el soclet debe de ser cliente
+                sslsocket.setUseClientMode(true);
+                System.out.println("CREADO SOCKET SSL");
 
-                CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
-                try{
-                    InputStream caInput = new BufferedInputStream(new ByteArrayInputStream(pem.getBytes(StandardCharsets.UTF_8)));
-                    Certificate cert = cf.generateCertificate(caInput);
-                    System.out.println(cert.toString());
+                SSLSession sesion = sslsocket.getSession();
 
-                    PublicKey pk= cert.getPublicKey();
+                IPpeer = sesion.getPeerHost();
 
-                    FileInputStream fis = new FileInputStream(signatureFile);
-                    ObjectInputStream ois = new ObjectInputStream(fis);
-                    Object o = ois.readObject();
+                System.out.println("CL:Host: " + IPpeer);
 
-                    String data2 = (String) o;
 
-                    o = ois.readObject();
-                    byte[] signature = (byte[]) o;
+                Mycipher = sesion.getCipherSuite();
+                System.out.println("CL:Cipher is " + Mycipher);
 
-                    ois.close();
-                    fis.close();
 
-                    Signature s = Signature.getInstance("SHA512withRSA");
-                    s.initVerify(pk);
-                    s.update(data2.getBytes());
+                System.out.println("CLProtocol is " + sesion.getProtocol());
 
-                    if(s.verify(signature)) return 1;
-                    else return 0;
+                OutputStream Flujo_salida2 = sslsocket.getOutputStream();
+                InputStream Flujo_entrada2 = sslsocket.getInputStream();
 
-                } catch (IOException e) {
-                }
+                DataOutputStream Flujo_s2 = new DataOutputStream(Flujo_salida2);
+                DataInputStream Flujo_e2 = new DataInputStream(Flujo_entrada2);
+
+                FileInputStream fis = new FileInputStream(signatureFile);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                Object o = ois.readObject();
+
+                String data2 = (String) o;
+
+                o = ois.readObject();
+                byte[] signature = (byte[]) o;
+
+                ois.close();
+                fis.close();
+
+                long tamano_req = signature.length;
+
+                System.out.println("Tamano calculado fich req.pem: " + tamano_req + " Bytes");
+
+                //envio longitud fichero req.pem
+                System.out.println("envio longitud fichero: " + tamano_req + " Bytes");
+                Flujo_s2.writeLong(tamano_req);
+
+                //enviamos fichero
+                System.out.println("envio  fichero signature: ");
+                Flujo_s2.write(signature);
+
+                int ack = Flujo_e2.readInt();
+
+                if(ack == 1) System.out.println("ACK recibido, confirmada recepcion del fichero signature");
+                else System.out.println("Error en la recepcion del fichero signature");
+
+                byte[] userNameByteArray = userName.getBytes(StandardCharsets.UTF_8);
+
+                Flujo_s2.writeInt(userNameByteArray.length);
+                int comprobacion = Flujo_e2.readInt();
+
+                System.out.println(userNameByteArray.length);
+                System.out.println(comprobacion);
+                if(userNameByteArray.length == comprobacion) System.out.println("Longitud Name User correcta");
+
+                System.out.println("Nombre de usuario: "+userName);
+                Flujo_s2.write(userNameByteArray);
+
+                int userID = Flujo_e2.readInt();
+
+                if(userID == -1) return USRNOREGIS;
+                else if(userID == -2) return ERRORSIGNATURE2;
+                else id_usuario = String.valueOf(userID);
+
+                socket_cliente.close();
+                sslsocket.close();
+
+
+
+                System.out.println("CL:antes del close");
+
+
 
             } catch (Exception e) {
                 e.printStackTrace();
                 res = UNEXPECTED;
             }
+
+            res = CORRECT;
 
             return res;
         }
@@ -468,9 +573,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Integer result) {
             //textView.setText(result);
-            if(result == 1 ) openShowRecomendation(id_usuario);
-            else if(result == 0 ) Toast.makeText(MainActivity.this, "Datos incorrectos", Toast.LENGTH_SHORT).show();
-            else if(result == -1) Toast.makeText(MainActivity.this, "Ha saltado excepcion", Toast.LENGTH_SHORT).show();
+            if(result == CORRECT) openShowRecomendation(id_usuario);
+            else if(result == P12NOEXIST ) Toast.makeText(MainActivity.this, "No se ha seleccionado un fichero P12", Toast.LENGTH_SHORT).show();
+            else if(result == ERRORSIGNATURE ) Toast.makeText(MainActivity.this, "Error al crear la firma ", Toast.LENGTH_SHORT).show();
+            else if(result == USRNOREGIS ) Toast.makeText(MainActivity.this, "No hay ningún usuario registrado con ese nombre", Toast.LENGTH_SHORT).show();
+            else if(result == ERRORSIGNATURE2 ) Toast.makeText(MainActivity.this, "La firma no corresponde con el fichero PEM registrado", Toast.LENGTH_SHORT).show();
+            else if(result == UNEXPECTED) Toast.makeText(MainActivity.this, "Ha saltado excepcion", Toast.LENGTH_SHORT).show();
         }
     }
 
