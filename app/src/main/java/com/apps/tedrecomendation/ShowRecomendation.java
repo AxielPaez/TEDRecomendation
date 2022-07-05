@@ -21,7 +21,7 @@ import java.util.List;
 
 public class ShowRecomendation extends AppCompatActivity {
 
-    private static final String sv_url = "192.168.1.44";
+    private String sv_url;
     private static final int sv_port = 10000;
 
     private static final int ID_LOGIN = 0;
@@ -43,6 +43,7 @@ public class ShowRecomendation extends AppCompatActivity {
         listView = findViewById(R.id.listaReco);
         Intent intent = getIntent();
         id_usuario =(String) intent.getStringExtra("id_usuario");
+        sv_url = (String) intent.getStringExtra("sv_url");
         System.out.println("Show Recomendation ID_USUARIO: "+id_usuario);
 
         listRequest lr = new listRequest();
@@ -178,6 +179,9 @@ public class ShowRecomendation extends AppCompatActivity {
             if(data != null) {
 
                 intent.putExtra("id_usuario", id_usuario);
+                intent.putExtra("sv_url", sv_url);
+                intent.putExtra("backTo", "0");
+
                 intent.putExtra("id_charla", Integer.toString(charla.getId()));
                 intent.putExtra("titulo", charla.getTitulo());
                 intent.putExtra("ponente", data[0]);
@@ -198,6 +202,7 @@ public class ShowRecomendation extends AppCompatActivity {
 
         Intent intent = new Intent(ShowRecomendation.this, ShowHistory.class);
         intent.putExtra("id_usuario", id_usuario);
+        intent.putExtra("sv_url", sv_url);
         startActivity(intent);
 
     }

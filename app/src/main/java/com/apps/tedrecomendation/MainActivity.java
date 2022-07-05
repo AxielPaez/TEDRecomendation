@@ -48,7 +48,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 public class MainActivity extends AppCompatActivity {
 
-    private String sv_url;
+    public static String sv_url;
     private static final int sv_users = 5220;
 
     private static final int ID_LOGIN = 0;
@@ -148,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
     public void openShowRecomendation(String id_usuario){
         Intent intent = new Intent(this, ShowRecomendation.class);
         intent.putExtra("id_usuario", id_usuario);
+        intent.putExtra("sv_url", sv_url);
         startActivity(intent);
     }
 
@@ -319,15 +320,12 @@ public class MainActivity extends AppCompatActivity {
             String p12password;
 
             String p12FileName = "cert.p12";
-            String pemFileName = "cert.pem";
             String signatureFileName = "signature";
 
             File p12File;
-            File pemFile;
             File signatureFile;
 
             File p12Dir;
-            File pemDir;
             File signatureDir;
 
             try {
@@ -336,6 +334,58 @@ public class MainActivity extends AppCompatActivity {
                 p12password = p12passwordET.getText().toString();
 
                 sv_url = ipET.getText().toString();
+
+
+
+                /*
+                Verifico que la clave publica es la correspondiente a la clave privada
+                 */
+                SSLContext ctx = SSLContext.getInstance("TLS");
+                KeyStore keyStore = KeyStore.getInstance("BKS");
+
+                InputStream certificateStream = getResources().openRawResource(R.raw.cacertificado);
+                CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
+                java.security.cert.Certificate[]  chain = {};
+                chain = certificateFactory.generateCertificates(certificateStream).toArray(chain);
+                certificateStream.close();
+
+                keyStore.load(null,null);
+                String Alias="oooooo";
+                keyStore.setEntry( Alias,   new KeyStore.TrustedCertificateEntry(chain[0]), null);
+
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                tmf.init(keyStore);
+
+                ctx.init(null, tmf.getTrustManagers(), null);
+
+                Socket socket_cliente = new Socket(sv_url, sv_users);
+                System.out.println("CREADO SOCKET tcp");
+
+                IPpeer_innet = socket_cliente.getInetAddress();
+
+                SSLSocketFactory sslSf = ctx.getSocketFactory();
+                SSLSocket sslsocket = (SSLSocket) sslSf.createSocket(socket_cliente, null, socket_cliente.getPort(), false);
+                sslsocket.setUseClientMode(true);
+                System.out.println("CONVERTIDO SOCKET TCP EN SOCKET SSL");
+
+                SSLSession sesion = sslsocket.getSession();
+
+                IPpeer = sesion.getPeerHost();
+                Mycipher = sesion.getCipherSuite();
+                System.out.println("CL:Cipher is " + Mycipher);
+
+                System.out.println("CLProtocol is " + sesion.getProtocol());
+
+                OutputStream Flujo_salida2 = sslsocket.getOutputStream();
+                InputStream Flujo_entrada2 = sslsocket.getInputStream();
+
+                DataOutputStream Flujo_s2 = new DataOutputStream(Flujo_salida2);
+                DataInputStream Flujo_e2 = new DataInputStream(Flujo_entrada2);
+
+                Flujo_s2.writeInt(ID_LOGIN);
+
+                int numberToSign = Flujo_e2.readInt();
+                System.out.println("Recibido numero para firmar: "+numberToSign);
 
                 ks = KeyStore.getInstance("PKCS12");
 
@@ -375,134 +425,15 @@ public class MainActivity extends AppCompatActivity {
 
                 sig.initSign((PrivateKey) key);
 
-                byte[] buf = userName.getBytes();
+
+                //byte[] buf = userName.getBytes();
+                byte[] buf = String.valueOf(numberToSign).getBytes();
                 sig.update(buf);
                 oos.writeObject(userName);
                 auxdatotosign =  sig.sign();
 
                 oos.writeObject(auxdatotosign);
                 oos.close();
-
-                /*
-                Verifico que la clave publica es la correspondiente a la clave privada
-                 */
-                String[] result = new String[10];
-
-                SSLContext ctx;
-                KeyManagerFactory kmf, kmf2;
-                KeyStore ks1, ks2;
-
-                kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                ks1 = KeyStore.getInstance("BKS");
-                ctx = SSLContext.getInstance("TLS");
-
-                KeyStore keyStore = null;
-                // keyStore = KeyStore.getInstance("JKS");
-                keyStore = KeyStore.getInstance("BKS");
-
-                InputStream certificateStream = getResources().openRawResource(R.raw.cacertificado);
-
-                CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
-                java.security.cert.Certificate[]  chain = {};
-                chain = certificateFactory.generateCertificates(certificateStream).toArray(chain);
-
-                certificateStream.close();
-
-
-
-                //Chain es un array de certificados que en el valor 0 tiene nuestro certificado
-
-                System.out.println(  ((X509Certificate)chain[0]).toString());
-                System.out.println("\n\n");
-                System.out.println("LEIDO CERTIFICADO:");
-                System.out.println("\tPROPIETARIO: " + ((X509Certificate)chain[0]).getSubjectDN( ));
-                System.out.println("\tEMISOR: " +((X509Certificate)chain[0]).getIssuerDN( ));
-                System.out.println("\tVALIDDEZ: " +((X509Certificate)chain[0]).getNotBefore() + " to " + ((X509Certificate)chain[0]).getNotAfter( ));
-                System.out.println("\tNUMERO DE SERIE: " + ((X509Certificate)chain[0]).getSerialNumber( ));
-                System.out.println("\tALGORITMOS: " +((X509Certificate)chain[0]).getSigAlgName( ));
-                certificateStream.close();
-
-                String Alias="oooooo";
-
-                //la clave privada tiene que corresponden con el certificado que enta em el array 0 de chaihn
-
-
-                keyStore.load(null,null);
-
-                keyStore.setEntry( Alias,   new KeyStore.TrustedCertificateEntry(chain[0]), null);
-
-
-
-                // TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-                TrustManagerFactory tmf = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-
-
-                tmf.init(keyStore);
-
-
-                ctx.init(null, tmf.getTrustManagers(), null);
-
-
-                Socket socket_cliente = new Socket(sv_url, sv_users);
-
-                System.out.println("CREADO SOCKET tcp");
-
-                IPpeer_innet = socket_cliente.getInetAddress();
-
-
-                System.out.println("CL:Host: " + IPpeer_innet);
-
-
-                OutputStream Flujo_salida = socket_cliente.getOutputStream();
-                InputStream Flujo_entrada = socket_cliente.getInputStream();
-
-                DataOutputStream Flujo_s = new DataOutputStream(Flujo_salida);
-                DataInputStream Flujo_e = new DataInputStream(Flujo_entrada);
-
-
-                String mensaje_inicial;
-                boolean ssl;
-                boolean ssl_activated=true;
-
-                if (ssl_activated) {
-                    mensaje_inicial = "ssl";
-
-                } else {
-
-                    mensaje_inicial = "nada";
-
-
-                }
-                Flujo_s.writeUTF(mensaje_inicial);
-                System.out.println("CL: ENVIADO MENSAJE INICIAL");
-
-
-                SSLSocketFactory sslSf = ctx.getSocketFactory();
-                //Actualizamos el socketm para que ahora sea ssl
-                SSLSocket sslsocket = (SSLSocket) sslSf.createSocket(socket_cliente, null, socket_cliente.getPort(), false);
-                // el modo de usar el soclet debe de ser cliente
-                sslsocket.setUseClientMode(true);
-                System.out.println("CREADO SOCKET SSL");
-
-
-                SSLSession sesion = sslsocket.getSession();
-
-                IPpeer = sesion.getPeerHost();
-
-                System.out.println("CL:Host: " + IPpeer);
-
-
-                Mycipher = sesion.getCipherSuite();
-                System.out.println("CL:Cipher is " + Mycipher);
-
-
-                System.out.println("CLProtocol is " + sesion.getProtocol());
-
-                OutputStream Flujo_salida2 = sslsocket.getOutputStream();
-                InputStream Flujo_entrada2 = sslsocket.getInputStream();
-
-                DataOutputStream Flujo_s2 = new DataOutputStream(Flujo_salida2);
-                DataInputStream Flujo_e2 = new DataInputStream(Flujo_entrada2);
 
                 FileInputStream fis = new FileInputStream(signatureFile);
                 ObjectInputStream ois = new ObjectInputStream(fis);
@@ -528,9 +459,9 @@ public class MainActivity extends AppCompatActivity {
                 System.out.println("envio  fichero signature: ");
                 Flujo_s2.write(signature);
 
-                int ack = Flujo_e2.readInt();
+                long ack = Flujo_e2.readLong();
 
-                if(ack == 1) System.out.println("ACK recibido, confirmada recepcion del fichero signature");
+                if(ack == signature.length) System.out.println("ACK recibido, confirmada recepcion del fichero signature");
                 else System.out.println("Error en la recepcion del fichero signature");
 
                 byte[] userNameByteArray = userName.getBytes(StandardCharsets.UTF_8);
@@ -538,8 +469,6 @@ public class MainActivity extends AppCompatActivity {
                 Flujo_s2.writeInt(userNameByteArray.length);
                 int comprobacion = Flujo_e2.readInt();
 
-                System.out.println(userNameByteArray.length);
-                System.out.println(comprobacion);
                 if(userNameByteArray.length == comprobacion) System.out.println("Longitud Name User correcta");
 
                 System.out.println("Nombre de usuario: "+userName);

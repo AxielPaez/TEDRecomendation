@@ -22,6 +22,8 @@ import android.widget.Toast;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -32,6 +34,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -44,23 +47,32 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.util.Enumeration;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
+
 public class RegisterActivity extends AppCompatActivity {
 
-    private static final String sv_url = "192.168.1.44";
-    private static final int sv_port = 10000;
+    private static String sv_url;
+    private static final int sv_users = 5220;
 
     TextView p12certificate2, pemcertificate2;
-    EditText userET, p12passwordET;
+    EditText ipET, userET, p12passwordET;
 
     Context context;
     Intent intent;
     InputStream is;
 
+    String Mycipher;
+    String IPpeer;
+    InetAddress IPpeer_innet;
+
     byte auxdatotosign[];
 
-    private static final int ID_LOGIN = 1;
-    private static final int ID_GETSPEACHDATA = 2;
-    private static final int ID_ALMACENAPEM = 3;
+    private static final int ID_REGISTRO = 1;
 
     private static final int UNEXPECTED = -1;
     private static final int NOERROR = 0;
@@ -74,8 +86,9 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        userET = (EditText) findViewById(R.id.editTextTextPersonName2);
-        p12passwordET = (EditText) findViewById(R.id.editTextTextPersonName3);
+        userET = (EditText) findViewById(R.id.ETPersonName);
+        p12passwordET = (EditText) findViewById(R.id.ETP12Password);
+        ipET = (EditText) findViewById(R.id.ipET);
 
         p12certificate2 = (TextView) findViewById(R.id.p12certificate2);
         pemcertificate2 = (TextView) findViewById(R.id.pemcertificate2);
@@ -316,6 +329,7 @@ public class RegisterActivity extends AppCompatActivity {
 
                 userName = userET.getText().toString();
                 p12password = p12passwordET.getText().toString();
+                sv_url = ipET.getText().toString();
 
                 ks = KeyStore.getInstance("PKCS12");
 
@@ -398,9 +412,59 @@ public class RegisterActivity extends AppCompatActivity {
                 //Si puedo verificar la firma, almaceno el fichero PEM en la BBDD junto con el nombre de usuario
                 if(s.verify(signature)) {
 
-                    Socket socket = new Socket(sv_url, sv_port);
-                    OutputStream os = socket.getOutputStream();
-                    PrintWriter pw = new PrintWriter(os);
+                    SSLContext ctx = SSLContext.getInstance("TLS");
+                    KeyStore keyStore = KeyStore.getInstance("BKS");
+
+                    InputStream certificateStream = getResources().openRawResource(R.raw.cacertificado);
+                    CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
+                    java.security.cert.Certificate[]  chain = {};
+                    chain = certificateFactory.generateCertificates(certificateStream).toArray(chain);
+                    certificateStream.close();
+
+                    keyStore.load(null,null);
+                    String Alias="oooooo";
+                    keyStore.setEntry( Alias,   new KeyStore.TrustedCertificateEntry(chain[0]), null);
+
+                    TrustManagerFactory tmf = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                    tmf.init(keyStore);
+
+                    ctx.init(null, tmf.getTrustManagers(), null);
+
+                    Socket socket_cliente = new Socket(sv_url, sv_users);
+                    System.out.println("CREADO SOCKET tcp");
+
+                    IPpeer_innet = socket_cliente.getInetAddress();
+
+                    SSLSocketFactory sslSf = ctx.getSocketFactory();
+                    SSLSocket sslsocket = (SSLSocket) sslSf.createSocket(socket_cliente, null, socket_cliente.getPort(), false);
+                    sslsocket.setUseClientMode(true);
+                    System.out.println("CONVERTIDO SOCKET TCP EN SOCKET SSL");
+
+                    SSLSession sesion = sslsocket.getSession();
+
+                    IPpeer = sesion.getPeerHost();
+                    Mycipher = sesion.getCipherSuite();
+                    System.out.println("CL:Cipher is " + Mycipher);
+
+                    System.out.println("CLProtocol is " + sesion.getProtocol());
+
+                    OutputStream Flujo_salida2 = sslsocket.getOutputStream();
+                    InputStream Flujo_entrada2 = sslsocket.getInputStream();
+
+                    DataOutputStream Flujo_s2 = new DataOutputStream(Flujo_salida2);
+                    DataInputStream Flujo_e2 = new DataInputStream(Flujo_entrada2);
+
+                    Flujo_s2.writeInt(ID_REGISTRO);
+
+                    byte[] userNameByteArray = userName.getBytes(StandardCharsets.UTF_8);
+
+                    Flujo_s2.writeInt(userNameByteArray.length);
+                    int comprobacion = Flujo_e2.readInt();
+
+                    if(userNameByteArray.length == comprobacion) System.out.println("Longitud Name User correcta");
+
+                    System.out.println("Nombre de usuario: "+userName);
+                    Flujo_s2.write(userNameByteArray);
 
                     StringBuilder textBuilder = new StringBuilder();
                     try (Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(pemFile), Charset.forName(StandardCharsets.UTF_8.name())))) {
@@ -410,16 +474,21 @@ public class RegisterActivity extends AppCompatActivity {
                         }
                     }
 
-                    System.out.println("TEXT BUILDER: "+textBuilder.toString());
-                    String request = ID_ALMACENAPEM + ";" + userName + ";" + textBuilder.toString();
+                    byte[] pemByteArray = textBuilder.toString().getBytes(StandardCharsets.UTF_8);
 
-                    pw.write(request);
-                    pw.flush();
-                    socket.shutdownOutput();
+                    Flujo_s2.writeInt(pemByteArray.length);
+                    int comprobacion2 = Flujo_e2.readInt();
 
-                    socket.close();
+                    if(pemByteArray.length == comprobacion2) System.out.println("Longitud PEM correcta");
 
-                    return NOERROR;
+                    Flujo_s2.write(pemByteArray);
+
+                    int respuesta = Flujo_e2.readInt();
+
+                    if(respuesta==1) return NOERROR;
+                    else return UNEXPECTED;
+
+
                 }else{
                     return ERRORVERIFY;
                 }
@@ -443,8 +512,17 @@ public class RegisterActivity extends AppCompatActivity {
                 Toast.makeText(RegisterActivity.this, "Error inesperado", Toast.LENGTH_SHORT).show();
             }else{
                 Toast.makeText(RegisterActivity.this, "Usuario registrado", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+                startActivity(intent);
             }
 
         }
+    }
+
+    public void login(View v){
+
+        Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+        startActivity(intent);
+
     }
 }

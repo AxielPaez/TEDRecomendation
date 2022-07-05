@@ -1,10 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+
+    <Button
+        android:id="@+id/back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="back"
+        android:text="Back"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.947"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.023" />
 
     <TextView
         android:id="@+id/titulo"
@@ -12,16 +25,16 @@
         android:layout_height="84dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="38dp"
         android:gravity="center_horizontal"
         android:text="Titulo"
         android:textColor="@color/black"
         android:textSize="26sp"
         android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/ponente"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteY="41dp" />
+        android:layout_marginBottom="30dp"/>
 
     <TextView
         android:id="@+id/ponente"
@@ -29,12 +42,11 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/titulo"
         android:layout_alignParentStart="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="70dp"
+        android:layout_marginBottom="30dp"
         android:text="Ponente"
+        android:textColor="@color/black"
         app:layout_constraintBottom_toTopOf="@+id/evento"
-        app:layout_constraintTop_toBottomOf="@+id/titulo"
-        tools:layout_editor_absoluteX="24dp" />
+        app:layout_constraintStart_toStartOf="@+id/titulo" />
 
     <TextView
         android:id="@+id/ponenteTxt"
@@ -42,16 +54,12 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/titulo"
         android:layout_alignParentEnd="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="70dp"
-        android:layout_marginEnd="30dp"
+        android:layout_marginLeft="30dp"
+        android:layout_marginBottom="30dp"
         android:layout_toEndOf="@+id/ponente"
         android:text="Nombre Ponente"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.162"
-        app:layout_constraintStart_toEndOf="@+id/ponente"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteY="192dp" />
+        app:layout_constraintBottom_toTopOf="@+id/eventoTxt"
+        app:layout_constraintStart_toEndOf="@+id/ponente" />
 
     <TextView
         android:id="@+id/evento"
@@ -59,12 +67,11 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/ponente"
         android:layout_alignParentStart="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
         android:text="Evento"
+        android:textColor="@color/black"
         app:layout_constraintBottom_toTopOf="@+id/duracion"
-        app:layout_constraintEnd_toStartOf="@+id/eventoTxt"
-        app:layout_constraintHorizontal_bias="0.436" />
+        app:layout_constraintStart_toStartOf="@+id/ponente"
+        android:layout_marginBottom="30dp"/>
 
     <TextView
         android:id="@+id/eventoTxt"
@@ -72,12 +79,11 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/ponenteTxt"
         android:layout_alignParentEnd="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
-        android:layout_marginEnd="30dp"
         android:layout_toEndOf="@+id/evento"
         android:text="Nombre Evento"
-        tools:ignore="MissingConstraints" />
+        app:layout_constraintBottom_toTopOf="@+id/duracionTxt"
+        app:layout_constraintStart_toStartOf="@+id/ponenteTxt"
+        android:layout_marginBottom="30dp"/>
 
     <TextView
         android:id="@+id/duracion"
@@ -85,14 +91,11 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/evento"
         android:layout_alignParentStart="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
         android:text="Duración"
-        app:layout_constraintEnd_toStartOf="@+id/duracionTxt"
-        app:layout_constraintHorizontal_bias="0.436"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteY="276dp" />
+        android:textColor="@color/black"
+        app:layout_constraintBottom_toTopOf="@+id/visitas"
+        app:layout_constraintStart_toStartOf="@+id/ponente"
+        android:layout_marginBottom="30dp" />
 
     <TextView
         android:id="@+id/duracionTxt"
@@ -100,39 +103,11 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/eventoTxt"
         android:layout_alignParentEnd="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
-        android:layout_marginEnd="30dp"
+        android:layout_marginBottom="30dp"
         android:layout_toEndOf="@+id/evento"
         android:text="Tiempo duración"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteX="145dp"
-        tools:layout_editor_absoluteY="276dp" />
-
-    <TextView
-        android:id="@+id/url"
-        android:layout_width="90dp"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/visitas"
-        android:layout_alignParentStart="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
-        android:text="Url" />
-
-    <TextView
-        android:id="@+id/urlTxt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/visitasTxt"
-        android:layout_alignParentEnd="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
-        android:layout_marginEnd="30dp"
-        android:layout_toEndOf="@+id/url"
-        android:text="Url charla"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteX="145dp"
-        tools:layout_editor_absoluteY="317dp" />
+        app:layout_constraintBottom_toTopOf="@+id/visitasTxt"
+        app:layout_constraintStart_toStartOf="@+id/ponenteTxt" />
 
     <TextView
         android:id="@+id/visitas"
@@ -140,15 +115,12 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/duracion"
         android:layout_alignParentStart="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
         android:text="Nº Visitas"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/visitasTxt"
-        app:layout_constraintHorizontal_bias="0.51"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="MissingConstraints" />
+        android:textColor="@color/black"
+        app:layout_constraintBottom_toTopOf="@+id/url"
+        app:layout_constraintStart_toStartOf="@+id/ponente"
+        android:layout_marginBottom="30dp" />
+
 
     <TextView
         android:id="@+id/visitasTxt"
@@ -156,15 +128,38 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/duracionTxt"
         android:layout_alignParentEnd="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
-        android:layout_marginEnd="30dp"
+        android:layout_marginBottom="30dp"
         android:layout_toEndOf="@+id/visitas"
         android:text="Número de visitas"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteX="145dp" />
+        app:layout_constraintBottom_toTopOf="@+id/urlTxt"
+        app:layout_constraintStart_toStartOf="@+id/ponenteTxt" />
+
+    <TextView
+        android:id="@+id/url"
+        android:layout_width="90dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/visitas"
+        android:layout_alignParentStart="true"
+        android:text="Url"
+        android:textColor="@color/black"
+        app:layout_constraintBottom_toTopOf="@+id/descripcion"
+        app:layout_constraintStart_toStartOf="@+id/ponente"
+        android:layout_marginBottom="50dp"/>
+
+
+    <TextView
+        android:id="@+id/urlTxt"
+        android:layout_width="220dp"
+        android:layout_height="36dp"
+        android:layout_below="@+id/visitasTxt"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="32dp"
+        android:layout_toEndOf="@+id/url"
+        android:scrollbars="vertical"
+        android:text="Url charla"
+        android:textIsSelectable="true"
+        app:layout_constraintBottom_toTopOf="@+id/descripcion"
+        app:layout_constraintStart_toStartOf="@+id/ponenteTxt" />
 
     <TextView
         android:id="@+id/descripcion"
@@ -172,33 +167,11 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/url"
         android:layout_alignParentStart="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="70dp"
         android:text="Descripcion:"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.074"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteY="468dp" />
-
-    <TextView
-        android:id="@+id/descripcionTxt"
-        android:layout_width="341dp"
-        android:layout_height="150dp"
-        android:layout_below="@+id/descripcion"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="30dp"
-        android:layout_marginBottom="30dp"
-        android:text="Texto ejemplo"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteY="517dp" />
+        android:textColor="@color/black"
+        app:layout_constraintBottom_toTopOf="@+id/descripcionTxt"
+        app:layout_constraintStart_toStartOf="@+id/ponente"
+        tools:ignore="MissingConstraints" />
 
     <CheckBox
         android:id="@+id/meGusta"
@@ -206,9 +179,23 @@
         android:layout_height="wrap_content"
         android:layout_above="@+id/descripcionTxt"
         android:layout_alignParentEnd="true"
-        android:layout_marginEnd="30dp"
-        android:layout_marginBottom="0dp"
         android:onClick="onCheckboxClicked"
-        android:text="Me Gusta" />
+        android:text="Me Gusta"
+        app:layout_constraintBottom_toTopOf="@+id/descripcionTxt"
+        app:layout_constraintEnd_toEndOf="@+id/descripcionTxt" />
 
-</RelativeLayout>
+
+    <TextView
+        android:id="@+id/descripcionTxt"
+        android:layout_width="341dp"
+        android:layout_height="125dp"
+        android:layout_below="@+id/descripcion"
+        android:layout_marginBottom="30dp"
+        android:text="Texto ejemplo"
+        android:scrollbars = "vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/ponente" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

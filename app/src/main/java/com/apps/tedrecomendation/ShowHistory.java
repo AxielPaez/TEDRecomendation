@@ -19,7 +19,7 @@ import java.util.ArrayList;
 
 public class ShowHistory extends AppCompatActivity {
 
-    private static final String sv_url = "192.168.1.44";
+    private String sv_url;
     private static final int sv_port = 10000;
 
     private static final int ID_LOGIN = 0;
@@ -41,6 +41,7 @@ public class ShowHistory extends AppCompatActivity {
         listView = findViewById(R.id.listaHist);
         Intent intent = getIntent();
         id_usuario = (String) intent.getStringExtra("id_usuario");
+        sv_url = (String) intent.getStringExtra("sv_url");
 
         listRequest lr = new listRequest();
         lr.execute();
@@ -51,6 +52,7 @@ public class ShowHistory extends AppCompatActivity {
 
         Intent intent = new Intent(ShowHistory.this, ShowRecomendation.class);
         intent.putExtra("id_usuario", id_usuario);
+        intent.putExtra("sv_url", sv_url);
         startActivity(intent);
 
     }
@@ -198,6 +200,9 @@ public class ShowHistory extends AppCompatActivity {
             if (data != null) {
 
                 intent.putExtra("id_usuario", id_usuario);
+                intent.putExtra("sv_url", sv_url);
+                intent.putExtra("backTo", "1");
+
                 intent.putExtra("id_charla", Integer.toString(charla.getId()));
                 intent.putExtra("titulo", charla.getTitulo());
                 intent.putExtra("ponente", data[0]);
